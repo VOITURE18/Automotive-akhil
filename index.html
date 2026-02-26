@@ -124,6 +124,7 @@
         }
         .btn-neon:hover::before { left: 0; }
         .btn-neon:hover { box-shadow: 0 0 15px var(--neon-red), 0 0 30px var(--neon-red); }
+        .btn-neon:disabled { opacity: 0.5; cursor: not-allowed; }
 
         /* Scroll Reveal Animation */
         .reveal {
@@ -607,42 +608,43 @@
                     <div class="glass p-8 md:p-10 rounded-2xl relative">
                         <h3 class="text-2xl font-display font-bold mb-6">REQUEST AN APPOINTMENT</h3>
                         
+                        <!-- Form with specific 'name' attributes required for emailing -->
                         <form id="bookingForm" class="space-y-6">
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
                                     <label class="block text-sm font-display text-gray-400 mb-2 uppercase">Full Name</label>
-                                    <input type="text" required class="w-full px-4 py-3 rounded-lg focus:ring-1 focus:ring-neonBlue" placeholder="John Doe">
+                                    <input type="text" name="name" required class="w-full px-4 py-3 rounded-lg focus:ring-1 focus:ring-neonBlue" placeholder="John Doe">
                                 </div>
                                 <div>
                                     <label class="block text-sm font-display text-gray-400 mb-2 uppercase">Phone Number</label>
-                                    <input type="tel" required class="w-full px-4 py-3 rounded-lg focus:ring-1 focus:ring-neonBlue" placeholder="+91 xxxxx xxxxx">
+                                    <input type="tel" name="phone" required class="w-full px-4 py-3 rounded-lg focus:ring-1 focus:ring-neonBlue" placeholder="+91 xxxxx xxxxx">
                                 </div>
                             </div>
                             
                             <div>
                                 <label class="block text-sm font-display text-gray-400 mb-2 uppercase">Vehicle Details (Make/Model/Year)</label>
-                                <input type="text" required class="w-full px-4 py-3 rounded-lg focus:ring-1 focus:ring-neonBlue" placeholder="e.g. BMW M3 2018">
+                                <input type="text" name="vehicle" required class="w-full px-4 py-3 rounded-lg focus:ring-1 focus:ring-neonBlue" placeholder="e.g. BMW M3 2018">
                             </div>
 
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
                                     <label class="block text-sm font-display text-gray-400 mb-2 uppercase">Service Required</label>
-                                    <select class="w-full px-4 py-3 rounded-lg focus:ring-1 focus:ring-neonBlue">
-                                        <option value="tuning">Performance Tuning / Remap</option>
-                                        <option value="engine">Engine Rebuild</option>
-                                        <option value="exhaust">Custom Exhaust</option>
-                                        <option value="diagnostic">Diagnostics</option>
-                                        <option value="brakes">Brakes & Suspension</option>
-                                        <option value="other">Other</option>
+                                    <select name="service" class="w-full px-4 py-3 rounded-lg focus:ring-1 focus:ring-neonBlue">
+                                        <option value="Performance Tuning / Remap">Performance Tuning / Remap</option>
+                                        <option value="Engine Rebuild">Engine Rebuild</option>
+                                        <option value="Custom Exhaust">Custom Exhaust</option>
+                                        <option value="Diagnostics">Diagnostics</option>
+                                        <option value="Brakes & Suspension">Brakes & Suspension</option>
+                                        <option value="Other">Other</option>
                                     </select>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-display text-gray-400 mb-2 uppercase">Preferred Date</label>
-                                    <input type="date" required class="w-full px-4 py-3 rounded-lg focus:ring-1 focus:ring-neonBlue">
+                                    <input type="date" name="date" required class="w-full px-4 py-3 rounded-lg focus:ring-1 focus:ring-neonBlue">
                                 </div>
                             </div>
 
-                            <button type="submit" class="btn-neon w-full mt-4">
+                            <button type="submit" id="submitBtn" class="btn-neon w-full mt-4">
                                 Confirm Booking Request
                             </button>
                         </form>
@@ -775,13 +777,54 @@
             updateCarousel();
         }, 5000);
 
-        // 6. Booking Form
-        document.getElementById('bookingForm').addEventListener('submit', (e) => {
+        // 6. Booking Form - SEND EMAIL FUNCTIONALITY
+        document.getElementById('bookingForm').addEventListener('submit', function(e) {
             e.preventDefault();
-            const successMsg = document.getElementById('successMessage');
-            successMsg.classList.remove('hidden');
-            successMsg.style.display = 'flex';
-            e.target.reset();
+            
+            const form = e.target;
+            const btn = document.getElementById('submitBtn');
+            const originalBtnText = btn.innerHTML;
+            
+            // Show loading state
+            btn.innerHTML = 'Sending... <i class="fas fa-spinner fa-spin ml-2"></i>';
+            btn.disabled = true;
+
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+
+            // Using FormSubmit API to send email
+            fetch("https://formsubmit.co/ajax/rohitpatel71007@gmail.com", {
+                method: "POST",
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    Name: data.name,
+                    Phone: data.phone,
+                    Vehicle: data.vehicle,
+                    Service: data.service,
+                    Date: data.date,
+                    _subject: "New Booking Request - Akhil Garage" // Email subject line
+                })
+            })
+            .then(response => response.json())
+            .then(result => {
+                // Show custom success message
+                const successMsg = document.getElementById('successMessage');
+                successMsg.classList.remove('hidden');
+                successMsg.style.display = 'flex';
+                form.reset();
+            })
+            .catch(error => {
+                console.error("Error sending email:", error);
+                alert("There was an error sending your request. Please try again or call us directly.");
+            })
+            .finally(() => {
+                // Reset button state
+                btn.innerHTML = originalBtnText;
+                btn.disabled = false;
+            });
         });
 
         // 7. Background Music Logic
